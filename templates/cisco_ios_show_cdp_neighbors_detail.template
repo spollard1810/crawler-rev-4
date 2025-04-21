@@ -1,0 +1,43 @@
+Value DEVICE_ID (.*)
+Value LOCAL_INTERFACE (\S+)
+Value HOLD_TIME (\d+)
+Value CAPABILITY (.*)
+Value PLATFORM (\S+)
+Value PORT_ID (\S+)
+Value IP_ADDRESS (\d+\.\d+\.\d+\.\d+)
+Value VTP_MGMT_DOMAIN (\S+)
+Value NATIVE_VLAN (\d+)
+Value DUPLEX (half|full)
+Value POWER_DRAWN (\d+)
+Value POWER_REQUEST_ID (\d+)
+Value POWER_REQUEST_LEVELS (.*)
+Value POWER_AVAILABLE (\d+)
+Value POWER_MGMT_ID (\d+)
+Value POWER_AVAILABLE_LEVELS (.*)
+Value POWER_REQUESTED (\d+)
+Value POWER_ALLOCATED (\d+)
+
+Start
+  ^Device ID:\s+${DEVICE_ID}
+  ^Interface:\s+${LOCAL_INTERFACE},\s+Port ID \(outgoing port\):\s+${PORT_ID}
+  ^Holdtime\s*:\s*${HOLD_TIME}
+  ^Version\s*:
+  ^advertisement version:\s*\d+
+  ^Platform:\s+${PLATFORM},\s+Capabilities:\s+${CAPABILITY}
+  ^Interface:\s+${LOCAL_INTERFACE},\s+Port ID \(outgoing port\):\s+${PORT_ID}
+  ^Holdtime\s*:\s*${HOLD_TIME}
+  ^Version\s*:
+  ^advertisement version:\s*\d+
+  ^Platform:\s+${PLATFORM},\s+Capabilities:\s+${CAPABILITY}
+  ^IP address:\s+${IP_ADDRESS}
+  ^VTP Management Domain:\s+${VTP_MGMT_DOMAIN}
+  ^Native VLAN:\s+${NATIVE_VLAN}
+  ^Duplex:\s+${DUPLEX}
+  ^Power drawn:\s+${POWER_DRAWN}\s+Watts
+  ^Power request id:\s+${POWER_REQUEST_ID},\s+Power management id:\s+${POWER_MGMT_ID}
+  ^Power request levels are:\s+${POWER_REQUEST_LEVELS}
+  ^Power available\s+${POWER_AVAILABLE}\s+Watts
+  ^Power available levels are:\s+${POWER_AVAILABLE_LEVELS}
+  ^Power requested\s+${POWER_REQUESTED}\s+Watts
+  ^Power allocated\s+${POWER_ALLOCATED}\s+Watts
+  ^. -> Record 

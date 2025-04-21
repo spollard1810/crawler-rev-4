@@ -1,0 +1,18 @@
+Value Filldown HOSTNAME (\S+)
+Value Filldown VERSION ([\d\.\(\)]+)
+Value Filldown PLATFORM (\S+)
+Value Filldown UPTIME (.*)
+Value Filldown SERIAL (\S+)
+
+Start
+  ^.*uptime\s+is\s+${UPTIME}
+  ^.*System\s+image\s+file\s+is\s+"[^"]+"
+  ^.*ROM:\s+System\s+Bootstrap,\s+Version\s+${VERSION}
+  ^.*${HOSTNAME}\s+uptime\s+is\s+${UPTIME}
+  ^.*System\s+image\s+file\s+is\s+"[^"]+"
+  ^.*ROM:\s+System\s+Bootstrap,\s+Version\s+${VERSION}
+  ^.*${PLATFORM}\s+processor\s+\(revision\s+[\d\.]+\)\s+with\s+.*
+  ^.*Processor\s+board\s+ID\s+${SERIAL}
+  ^.*cisco\s+${PLATFORM}\s+\(${PLATFORM}\)\s+processor\s+\(revision\s+[\d\.]+\)\s+with\s+.*
+  ^.*Processor\s+board\s+ID\s+${SERIAL}
+  ^. -> Record 
