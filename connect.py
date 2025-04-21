@@ -25,12 +25,18 @@ class DeviceConnection:
         
     def _load_template(self, template_name: str) -> textfsm.TextFSM:
         """Load a TextFSM template"""
-        template_path = os.path.join(self.template_dir, template_name)
+        # Determine the correct template prefix based on device type
+        if 'nx-os' in self.device.platform.lower():
+            template_prefix = 'cisco_nxos'
+        else:
+            template_prefix = 'cisco_ios'
+            
+        template_path = os.path.join(self.template_dir, f'{template_prefix}_{template_name}')
         try:
             with open(template_path) as f:
                 return textfsm.TextFSM(f)
         except Exception as e:
-            logger.error(f"Error loading template {template_name}: {str(e)}")
+            logger.error(f"Error loading template {template_path}: {str(e)}")
             raise
             
     def connect(self) -> bool:
@@ -39,27 +45,30 @@ class DeviceConnection:
             try:
                 device_params = {
                     'device_type': 'cisco_ios',  # Default, will be updated after show version
-                    'host': self.device.ip_address,
                     'username': self.username,
                     'password': self.password,
                     'timeout': config['connection']['timeout'],
                     'fast_cli': True
                 }
                 
-                # Try hostname first if it's different from IP
-                if self.device.hostname != self.device.ip_address:
-                    try:
-                        device_params['host'] = self.device.hostname
+                # Try cleaned hostname first
+                device_params['host'] = self.device.hostname
+                try:
+                    logger.info(f"Attempting connection to {self.device.hostname}")
+                    self.connection = ConnectHandler(**device_params)
+                    return True
+                except Exception as e:
+                    logger.warning(f"Failed to connect via hostname {self.device.hostname}: {str(e)}")
+                    
+                    # Only try IP if it's different from hostname
+                    if self.device.ip_address != self.device.hostname:
+                        logger.info(f"Falling back to IP {self.device.ip_address}")
+                        device_params['host'] = self.device.ip_address
                         self.connection = ConnectHandler(**device_params)
                         return True
-                    except Exception as e:
-                        logger.warning(f"Failed to connect via hostname {self.device.hostname}: {str(e)}")
-                        # Fall back to IP
-                        device_params['host'] = self.device.ip_address
-                
-                self.connection = ConnectHandler(**device_params)
-                return True
-                
+                    else:
+                        raise  # Re-raise if hostname and IP are the same
+                        
             except Exception as e:
                 if attempt < config['connection']['retry_attempts'] - 1:
                     logger.warning(f"Connection attempt {attempt + 1} failed: {str(e)}")
@@ -108,10 +117,12 @@ class DeviceConnection:
             self.device.update_from_show_version(version_data)
             
             # Update device type for connection
-            if 'iosxe' in self.device.platform.lower():
-                self.connection.device_type = 'cisco_xe'
-            elif 'nx-os' in self.device.platform.lower():
+            if 'nx-os' in self.device.platform.lower():
                 self.connection.device_type = 'cisco_nxos'
+            elif 'iosxe' in self.device.platform.lower():
+                self.connection.device_type = 'cisco_xe'
+            else:
+                self.connection.device_type = 'cisco_ios'
                 
             # Get show inventory output
             inventory_output = self.execute_command('show inventory')
@@ -119,11 +130,20 @@ class DeviceConnection:
                 inventory_data = self._parse_show_inventory(inventory_output)
                 self.device.update_from_show_inventory(inventory_data)
                 
-            # Get CDP neighbors
+            # Get CDP neighbors and update device with management IP if available
             cdp_output = self.execute_command('show cdp neighbors detail')
             if cdp_output:
                 cdp_data = self._parse_cdp_neighbors(cdp_output)
                 self.device.update_from_cdp_neighbors(cdp_data)
+                
+                # If we don't have an IP address yet, try to get it from CDP
+                if not self.device.ip_address and cdp_data:
+                    # Look for a neighbor with the same hostname as us
+                    for neighbor in cdp_data:
+                        if neighbor['hostname'].lower() == self.device.hostname.lower():
+                            self.device.ip_address = neighbor['ip_address']
+                            logger.info(f"Updated device IP from CDP: {self.device.ip_address}")
+                            break
                 
             return True
             
@@ -194,11 +214,15 @@ class DeviceConnection:
                 
             neighbors = []
             for result in results:
-                if result.get('IP_ADDRESS'):  # Only include neighbors with IP addresses
+                # Only include neighbors with management IPs
+                if result.get('MANAGEMENT_IP'):
+                    # Clean the device ID to remove FQDN and serial numbers
+                    device_id = result['DEVICE_ID'].split('.')[0].split('(')[0].strip()
+                    
                     neighbors.append({
-                        'hostname': result.get('DEVICE_ID', ''),
+                        'hostname': device_id,
                         'platform': result.get('PLATFORM', ''),
-                        'ip_address': result.get('IP_ADDRESS', ''),
+                        'ip_address': result.get('MANAGEMENT_IP', ''),
                         'local_interface': result.get('LOCAL_INTERFACE', ''),
                         'remote_interface': result.get('PORT_ID', ''),
                         'capabilities': result.get('CAPABILITY', '')

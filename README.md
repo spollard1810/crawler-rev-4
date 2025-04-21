@@ -11,6 +11,7 @@ A multi-threaded CDP crawler for discovering and inventorying Cisco network infr
 - SQLite database for device tracking
 - Progress reporting and statistics
 - CSV export of inventory
+- Smart connection handling (hostname-first, IP fallback)
 
 ## Requirements
 
@@ -108,6 +109,26 @@ python main.py --username <username> --password <password> --seed-hostname <host
 python main.py --username admin --password secret123 --seed-hostname core-switch1 --seed-ip 192.168.1.1
 ```
 
+### Connection Behavior
+
+The crawler uses a smart connection strategy:
+
+1. **Primary Connection Method**: Cleaned hostname
+   - Hostnames are normalized (FQDN and serial numbers removed)
+   - Attempts connection using the cleaned hostname first
+   - Requires DNS resolution or hosts file entry
+
+2. **Fallback Method**: Management IP from CDP
+   - Only used if hostname connection fails
+   - IP address is extracted from CDP neighbor detail output
+   - Must be a valid management IP address
+
+Example hostname normalization:
+```
+Original: Stephen-01-sw01.stephen.com (Serial: ABC123)
+Cleaned: stephen-01-sw01
+```
+
 ### Progress Reporting
 
 The crawler provides progress reports every 30 seconds showing:
@@ -182,4 +203,5 @@ Logs are written to `crawler.log` with the following information:
 - Only devices with valid IP addresses are processed
 - Hostnames are normalized (FQDN and serial numbers removed)
 - The database prevents duplicate processing
-- The crawler can be stopped with Ctrl+C and will complete current operations 
+- The crawler can be stopped with Ctrl+C and will complete current operations
+- DNS resolution or hosts file entries are required for hostname-based connections 

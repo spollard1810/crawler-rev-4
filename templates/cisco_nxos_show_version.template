@@ -1,0 +1,18 @@
+Value Filldown HOSTNAME (\S+)
+Value Filldown VERSION ([\d\.\(\)]+)
+Value Filldown PLATFORM (\S+)
+Value Filldown UPTIME (.*)
+Value Filldown SERIAL (\S+)
+Value Filldown KICKSTART_IMAGE (.*)
+Value Filldown SYSTEM_IMAGE (.*)
+
+Start
+  ^.*uptime\s+is\s+${UPTIME}
+  ^.*Kickstart\s+Image:\s+${KICKSTART_IMAGE}
+  ^.*System\s+Image:\s+${SYSTEM_IMAGE}
+  ^.*NXOS:\s+version\s+${VERSION}
+  ^.*Hardware\s+cisco\s+${PLATFORM}
+  ^.*Processor\s+board\s+ID\s+${SERIAL}
+  ^.*cisco\s+${PLATFORM}\s+Chassis
+  ^.*Processor\s+board\s+ID\s+${SERIAL}
+  ^. -> Record 

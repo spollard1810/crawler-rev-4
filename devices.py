@@ -55,6 +55,14 @@ class NetworkDevice:
             if pattern.lower() in platform_lower:
                 return 'excluded'
                 
+        # Check for specific Cisco platforms
+        if 'nx-os' in platform_lower or 'nexus' in platform_lower:
+            return 'cisco_nxos'
+        elif 'ios-xe' in platform_lower or 'ios xe' in platform_lower:
+            return 'cisco_xe'
+        elif 'ios' in platform_lower:
+            return 'cisco_ios'
+            
         # Check include patterns
         for pattern in config['filtering']['include_platforms']:
             if pattern.lower() in platform_lower:
